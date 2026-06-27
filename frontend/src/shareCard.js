@@ -144,6 +144,7 @@ export async function shareCard(data) {
   const file = new File([blob], "orate-session.png", { type: "image/png" });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
+      await navigator.share({ files: [file], title: "My Orate session" });
       return "shared";
     } catch {
       return "cancelled"; // user dismissed the share sheet
