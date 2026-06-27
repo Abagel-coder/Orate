@@ -1,8 +1,10 @@
 // A coach's report card: qualitative scores from Gemini plus the client-side
 // pacing and filler metrics, rendered as bars/meters rather than raw numbers.
+import { useState } from "react";
 import Transcript from "./Transcript";
 import { loadGoal } from "./storage";
 import { GOALS, goalValue } from "./goals";
+import { shareCard } from "./shareCard";
 
 const SCORE_KEYS = ["clarity", "pacing", "structure", "confidence"];
 
@@ -52,12 +54,15 @@ function wpmToPercent(wpm) {
 
 export default function Results({
   result,
+  topicTitle,
   audioUrl,
   transcript,
   previous,
   onRestart,
   onStats,
 }) {
+  const [shareMsg, setShareMsg] = useState(null);
+
   if (result._failed) {
     return (
       <section className="card">
@@ -81,6 +86,18 @@ export default function Results({
   const fillerEntries = Object.entries(fillerWords).sort((a, b) => b[1] - a[1]);
   const fillerTotal = fillerEntries.reduce((sum, [, n]) => sum + n, 0);
   const focus = focusSummary(result, previous);
+
+  async function handleShare() {
+    setShareMsg(null);
+    const outcome = await shareCard({
+      topic: topicTitle,
+      scores,
+      wpm,
+      fillerTotal,
+    });
+    if (outcome === "downloaded") setShareMsg("Card saved as an image.");
+    else if (outcome === "shared") setShareMsg("Shared!");
+  }
 
   return (
     <section className="card results">
@@ -230,7 +247,11 @@ export default function Results({
         <button className="ghost" onClick={onStats}>
           View progress
         </button>
+        <button className="ghost" onClick={handleShare}>
+          Share card
+        </button>
       </div>
+      {shareMsg && <p className="muted">{shareMsg}</p>}
     </section>
   );
 }

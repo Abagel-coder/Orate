@@ -144,6 +144,7 @@ export default function App() {
       {stage === "results" && result && (
         <Results
           result={result}
+          topicTitle={topic.title}
           audioUrl={audioUrl}
           transcript={transcript}
           previous={previous}
