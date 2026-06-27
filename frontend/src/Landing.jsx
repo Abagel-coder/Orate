@@ -1,5 +1,7 @@
-// Full-screen entry page: the floating Orate wordmark, a difficulty picker, and
-// the call to action that kicks off a session.
+import { useState } from "react";
+
+// Full-screen entry page: the floating Orate wordmark, a difficulty picker, an
+// optional topic input, and the call to action that kicks off a session.
 const LEVELS = [
   { id: "easy", label: "Easy" },
   { id: "medium", label: "Medium" },
@@ -15,6 +17,12 @@ export default function Landing({
   difficulty,
   setDifficulty,
 }) {
+  const [query, setQuery] = useState("");
+
+  function start() {
+    onStart(query.trim());
+  }
+
   return (
     <div className="landing">
       <div className="landing-hero">
@@ -33,7 +41,17 @@ export default function Landing({
           ))}
         </div>
 
-        <button className="cta" disabled={loading} onClick={onStart}>
+        <input
+          className="topic-input"
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && !loading && start()}
+          placeholder="Topic (optional) — blank for random"
+          aria-label="Topic"
+        />
+
+        <button className="cta" disabled={loading} onClick={start}>
           {loading ? "Loading…" : "Start Learning"}
         </button>
         {error && <p className="landing-error">{error}</p>}

@@ -2,7 +2,7 @@
 // produces the qualitative scores, so these never round-trip through the model.
 
 // Single words and short phrases people lean on when they stall.
-const FILLERS = [
+export const FILLERS = [
   "um",
   "uh",
   "er",

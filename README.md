@@ -23,7 +23,7 @@ talking about it for 1–2 minutes, then grades the recording with the Gemini AP
 | -------- | -------------------------------------------------------------- |
 | Frontend | React (Vite), `MediaRecorder`, Web Speech API                  |
 | Backend  | Flask + `flask-cors`, `requests`, `google-genai`              |
-| Content  | Wikipedia REST API (`/page/random/summary`) — no key required  |
+| Content  | Wikipedia (Action API `generator=random` for random; REST summary for typed topics) — no key |
 | Grading  | Gemini `2.5-flash` — audio in, structured JSON out             |
 | Storage  | None server-side; audio is discarded after grading             |
 
@@ -35,8 +35,10 @@ cloud storage or database is needed.
 
 ### `GET /api/topic`
 
-Returns a random Wikipedia article to speak about. Retries past stubs and
-disambiguation pages.
+Returns a Wikipedia article to speak about. With `?q=<title>` it fetches that
+specific article (REST summary); otherwise it pulls a batch of random articles
+via the Action API in one request and keeps the first that's long enough and not
+a disambiguation page.
 
 ```json
 {
@@ -159,12 +161,28 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 flask --app app run --port 5001
 
-# frontend
+# frontend (needs Node 18+; this repo pins 20 via .nvmrc)
 cd frontend
+nvm use            # or: nvm install 20
 npm install
 npm run dev
 ```
 
 Set `GEMINI_API_KEY` in `backend/.env` to enable real grading; without it,
 `/api/grade` returns mock feedback so the rest of the app stays demoable.
-```
+
+## Deploy
+
+Frontend and backend deploy separately.
+
+- **Frontend** — `npm run build` produces static files in `frontend/dist/`; host on
+  any static host (Netlify, Vercel, GitHub Pages). Set `VITE_API_BASE` at build time
+  to the backend's public URL (the dev `/api` proxy doesn't exist in production).
+- **Backend** — run with gunicorn (`web: gunicorn app:app`, see `Procfile`) on a host
+  like Render/Railway/Fly. Set env vars:
+  - `GEMINI_API_KEY` — enables real grading (omit for a zero-cost mock demo).
+  - `FRONTEND_ORIGIN` — comma-separated allowed origin(s) for CORS (e.g. your frontend
+    URL). Defaults to `*` for local dev.
+
+> Never commit `backend/.env`. It's gitignored; configure secrets via the host's
+> environment instead.

@@ -4,28 +4,40 @@ import {
   clearAttempts,
   exportJSON,
   importJSON,
+  loadGoal,
+  saveGoal,
 } from "./storage";
-import { computeStats, avgScore } from "./statsUtil";
+import { computeStats, avgScore, practicedToday } from "./statsUtil";
+import { GOALS } from "./goals";
 
-// Inline SVG trend line of average score per session over time.
-function Sparkline({ series }) {
+// Which metric the trend chart plots; scores are out of 10, WPM out of ~200.
+const METRICS = [
+  { key: "avg", label: "Average", max: 10 },
+  { key: "clarity", label: "Clarity", max: 10 },
+  { key: "pacing", label: "Pacing", max: 10 },
+  { key: "structure", label: "Structure", max: 10 },
+  { key: "confidence", label: "Confidence", max: 10 },
+  { key: "wpm", label: "WPM", max: 200 },
+];
+
+// Inline SVG trend line of the chosen metric over time.
+function Sparkline({ series, metricKey, max }) {
   if (series.length < 2) {
     return <p className="muted">Record a few more sessions to see your trend.</p>;
   }
   const w = 320;
   const h = 90;
   const pad = 8;
-  const max = 10;
   const step = (w - pad * 2) / (series.length - 1);
   const points = series.map((p, i) => {
     const x = pad + i * step;
-    const y = h - pad - (p.avg / max) * (h - pad * 2);
+    const y = h - pad - (Math.min(p[metricKey], max) / max) * (h - pad * 2);
     return { x, y };
   });
   const line = points.map((p) => `${p.x},${p.y}`).join(" ");
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="sparkline" role="img" aria-label="Score trend">
+    <svg viewBox={`0 0 ${w} ${h}`} className="sparkline" role="img" aria-label="Trend">
       <polyline className="spark-line" points={line} />
       {points.map((p, i) => (
         <circle key={i} className="spark-dot" cx={p.x} cy={p.y} r="3" />
@@ -46,9 +58,20 @@ function Stat({ label, value, sub }) {
 
 export default function Stats({ onBack }) {
   const [attempts, setAttempts] = useState(() => loadAttempts());
+  const [goal, setGoal] = useState(() => loadGoal());
+  const [metricKey, setMetricKey] = useState("avg");
   const [notice, setNotice] = useState(null);
   const fileRef = useRef(null);
+
   const stats = computeStats(attempts);
+  const metric = METRICS.find((m) => m.key === metricKey) ?? METRICS[0];
+  const fmt = (v) => (metricKey === "wpm" ? Math.round(v) : v.toFixed(1));
+
+  function chooseGoal(id) {
+    const next = goal === id ? "" : id; // click again to clear
+    setGoal(next);
+    saveGoal(next);
+  }
 
   function handleClear() {
     if (!confirm("Clear all your session history? This can't be undone.")) return;
@@ -84,10 +107,19 @@ export default function Stats({ onBack }) {
     e.target.value = "";
   }
 
+  let latest = 0;
+  let first = 0;
+  if (stats.series.length) {
+    latest = stats.series[stats.series.length - 1][metricKey];
+    first = stats.series[0][metricKey];
+  }
+  const trendDelta = latest - first;
   const deltaLabel =
     stats.total > 1
-      ? `${stats.delta >= 0 ? "▲" : "▼"} ${Math.abs(stats.delta).toFixed(1)} since first`
+      ? `${trendDelta >= 0 ? "▲" : "▼"} ${fmt(Math.abs(trendDelta))} since first`
       : "—";
+
+  const showStreakNudge = stats.streak > 0 && !practicedToday(attempts);
 
   return (
     <main className="app">
@@ -100,6 +132,26 @@ export default function Stats({ onBack }) {
       <section className="card">
         <h2>Your progress</h2>
 
+        {showStreakNudge && (
+          <p className="nudge">
+            🔥 {stats.streak}-day streak — practice today to keep it going!
+          </p>
+        )}
+
+        {/* Focus picker is useful even before the first session. */}
+        <h3>Your focus</h3>
+        <div className="goal-picker">
+          {Object.entries(GOALS).map(([id, g]) => (
+            <button
+              key={id}
+              className={`goal-chip ${goal === id ? "goal-on" : ""}`}
+              onClick={() => chooseGoal(id)}
+            >
+              {g.label}
+            </button>
+          ))}
+        </div>
+
         {stats.total === 0 ? (
           <p className="muted">
             No sessions yet. Record one and your stats will show up here.
@@ -109,19 +161,26 @@ export default function Stats({ onBack }) {
             <div className="stat-grid">
               <Stat label="Sessions" value={stats.total} />
               <Stat label="Day streak" value={stats.streak} />
-              <Stat
-                label="Best avg"
-                value={stats.bestAvg.toFixed(1)}
-                sub="out of 10"
-              />
+              <Stat label="Best avg" value={stats.bestAvg.toFixed(1)} sub="out of 10" />
               <Stat label="Avg WPM" value={stats.avgWpm} />
             </div>
 
-            <h3>Average score over time</h3>
-            <div className="stat-sub" style={{ marginBottom: "0.5rem" }}>
-              Latest {stats.latestAvg.toFixed(1)} · {deltaLabel}
+            <h3>Trend</h3>
+            <div className="metric-picker">
+              {METRICS.map((m) => (
+                <button
+                  key={m.key}
+                  className={`metric-tab ${metricKey === m.key ? "metric-on" : ""}`}
+                  onClick={() => setMetricKey(m.key)}
+                >
+                  {m.label}
+                </button>
+              ))}
             </div>
-            <Sparkline series={stats.series} />
+            <div className="stat-sub" style={{ margin: "0.5rem 0" }}>
+              {metric.label}: latest {fmt(latest)} · {deltaLabel}
+            </div>
+            <Sparkline series={stats.series} metricKey={metricKey} max={metric.max} />
 
             <h3>Recent sessions</h3>
             <ul className="attempt-list">
@@ -150,11 +209,7 @@ export default function Stats({ onBack }) {
             Export
           </button>
           <button onClick={() => fileRef.current?.click()}>Import</button>
-          <button
-            onClick={handleClear}
-            disabled={stats.total === 0}
-            className="danger"
-          >
+          <button onClick={handleClear} disabled={stats.total === 0} className="danger">
             Clear
           </button>
           <input

@@ -27,6 +27,12 @@ export function dayStreak(attempts) {
   return streak;
 }
 
+// Whether any attempt happened on the local calendar's today.
+export function practicedToday(attempts) {
+  const today = dayKey(new Date());
+  return attempts.some((a) => dayKey(a.date) === today);
+}
+
 export function computeStats(attempts) {
   const sorted = [...attempts].sort(
     (a, b) => new Date(a.date) - new Date(b.date)
@@ -45,11 +51,16 @@ export function computeStats(attempts) {
     sorted.reduce((sum, a) => sum + (a.wpm || 0), 0) / total
   );
 
-  // Chronological series for the trend chart.
+  // Chronological series for the trend chart: overall average, WPM, and each
+  // individual criterion so the dashboard can plot any of them.
   const series = sorted.map((a) => ({
     date: a.date,
     avg: avgScore(a.scores),
     wpm: a.wpm || 0,
+    clarity: a.scores?.clarity ?? 0,
+    pacing: a.scores?.pacing ?? 0,
+    structure: a.scores?.structure ?? 0,
+    confidence: a.scores?.confidence ?? 0,
   }));
 
   return { total, streak: dayStreak(sorted), bestAvg, latestAvg, delta, avgWpm, series };

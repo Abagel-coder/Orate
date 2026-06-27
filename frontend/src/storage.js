@@ -2,6 +2,7 @@
 // later without losing data. No accounts, no server — everything lives here.
 
 const KEY = "orate.history";
+const GOAL_KEY = "orate.goal";
 const SCHEMA_VERSION = 1;
 
 function empty() {
@@ -48,6 +49,20 @@ export function saveAttempt({ topic, difficulty, scores, wpm, fillerTotal }) {
 
 export function clearAttempts() {
   write(empty());
+}
+
+// The user's current focus area (a GOALS id), or "" if none set.
+export function loadGoal() {
+  try {
+    return localStorage.getItem(GOAL_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function saveGoal(id) {
+  if (id) localStorage.setItem(GOAL_KEY, id);
+  else localStorage.removeItem(GOAL_KEY);
 }
 
 export function exportJSON() {

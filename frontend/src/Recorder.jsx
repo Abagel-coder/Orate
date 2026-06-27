@@ -15,7 +15,8 @@ function formatTime(s) {
 // Records the user speaking about `topic`, shows a live transcript + timer,
 // and hands the blob, transcript, and client metrics back via onComplete.
 export default function Recorder({ topic, onComplete, busy }) {
-  const { recording, elapsed, start: startRec, stop: stopRec } = useRecorder();
+  const { recording, elapsed, level, start: startRec, stop: stopRec } =
+    useRecorder();
   const { finalText, interim, start: startTx, stop: stopTx } = useTranscript();
   const [error, setError] = useState(null);
   const finishingRef = useRef(false);
@@ -49,6 +50,13 @@ export default function Recorder({ topic, onComplete, busy }) {
 
   const liveTranscript = (finalText + interim).trim();
 
+  // Rough running pace; only meaningful after a few seconds of speech.
+  const liveWords = liveTranscript ? liveTranscript.split(/\s+/).length : 0;
+  const liveWpm =
+    elapsed >= 4 && liveWords > 0
+      ? Math.round(liveWords / (elapsed / 60))
+      : null;
+
   // Once stopped, grading runs while stage is still "record" — show a dedicated
   // analyzing state so the start button can't be re-triggered mid-grade.
   if (busy) {
@@ -77,12 +85,22 @@ export default function Recorder({ topic, onComplete, busy }) {
         <div className="actions">
           <button onClick={begin}>Start recording</button>
           <p className="muted">Aim for 1–2 minutes. Auto-stops at 2:00.</p>
+          <p className="muted">
+            🔒 Your audio is sent for grading, then discarded — never stored.
+          </p>
         </div>
       ) : (
         <>
           <div className="rec-status">
             <span className="rec-dot" /> Recording {formatTime(elapsed)} /{" "}
             {formatTime(MAX_SECONDS)}
+            {liveWpm != null && (
+              <span className="live-wpm">· ~{liveWpm} WPM</span>
+            )}
+          </div>
+
+          <div className="mic-meter" aria-hidden="true">
+            <div className="mic-meter-fill" style={{ width: `${level * 100}%` }} />
           </div>
 
           <div className="transcript">

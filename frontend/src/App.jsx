@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { fetchTopic, gradeSpeech } from "./api";
-import { saveAttempt } from "./storage";
+import { saveAttempt, loadAttempts } from "./storage";
 import Landing from "./Landing";
 import About from "./About";
 import Stats from "./Stats";
@@ -14,17 +14,25 @@ export default function App() {
   const [difficulty, setDifficulty] = useState("medium");
   const [topic, setTopic] = useState(null);
   const [result, setResult] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [transcript, setTranscript] = useState("");
+  const [previous, setPrevious] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  async function startSession() {
+  // `query` is an optional user-typed topic; empty means random.
+  async function startSession(query) {
     setLoading(true);
     setError(null);
     try {
-      setTopic(await fetchTopic());
+      setTopic(await fetchTopic(query));
       setStage("topic");
     } catch {
-      setError("Couldn't load a topic. Check the backend and try again.");
+      setError(
+        query
+          ? `Couldn't find a topic for "${query}". Try another, or go random.`
+          : "Couldn't load a topic. Check the backend and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -33,14 +41,14 @@ export default function App() {
   // Gemini owns the qualitative scores; we attach the client-side WPM and
   // filler counts so the model never has to (unreliably) count them, then
   // persist the session for the stats dashboard.
-  async function finishRecording({ audioBlob, transcript, metrics }) {
+  async function finishRecording({ audioBlob, transcript: spoken, metrics }) {
     setLoading(true);
     setError(null);
     try {
       const graded = await gradeSpeech({
         audioBlob,
         topic: topic.title,
-        transcript,
+        transcript: spoken,
         difficulty,
       });
       const merged = {
@@ -48,7 +56,16 @@ export default function App() {
         wpm: metrics.wpm,
         fillerWords: metrics.fillerWords,
       };
+
+      // Grab the prior attempt for the comparison before saving this one.
+      const history = loadAttempts();
+      setPrevious(history.length ? history[history.length - 1] : null);
+
       setResult(merged);
+      setTranscript(spoken);
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      setAudioUrl(URL.createObjectURL(audioBlob));
+
       if (!merged._failed) {
         saveAttempt({
           topic: topic.title,
@@ -70,6 +87,10 @@ export default function App() {
   }
 
   function restart() {
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    setAudioUrl(null);
+    setTranscript("");
+    setPrevious(null);
     setResult(null);
     setTopic(null);
     setStage("start");
@@ -123,6 +144,9 @@ export default function App() {
       {stage === "results" && result && (
         <Results
           result={result}
+          audioUrl={audioUrl}
+          transcript={transcript}
+          previous={previous}
           onRestart={restart}
           onStats={() => setStage("stats")}
         />

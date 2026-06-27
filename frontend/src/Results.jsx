@@ -1,7 +1,35 @@
 // A coach's report card: qualitative scores from Gemini plus the client-side
 // pacing and filler metrics, rendered as bars/meters rather than raw numbers.
+import Transcript from "./Transcript";
+import { loadGoal } from "./storage";
+import { GOALS, goalValue } from "./goals";
 
 const SCORE_KEYS = ["clarity", "pacing", "structure", "confidence"];
+
+// Builds the focus callout content for the user's chosen goal, comparing this
+// session's tracked metric to the previous attempt.
+function focusSummary(result, previous) {
+  const goalId = loadGoal();
+  const goal = GOALS[goalId];
+  if (!goal) return null;
+
+  const current = goalValue(goalId, result);
+  if (current == null) return null;
+
+  const prev = goalValue(goalId, previous);
+  let trend = null;
+  if (prev != null) {
+    const diff = current - prev;
+    if (diff !== 0) {
+      const improved = goal.lowerIsBetter ? diff < 0 : diff > 0;
+      const sign = diff > 0 ? "+" : "";
+      trend = { improved, text: `${sign}${diff}${goal.unit} vs last session` };
+    } else {
+      trend = { improved: null, text: "same as last session" };
+    }
+  }
+  return { label: goal.label, current: `${current}${goal.unit}`, trend };
+}
 
 // Comfortable spoken-presentation range; used to judge the user's pace.
 const IDEAL_MIN = 120;
@@ -22,7 +50,14 @@ function wpmToPercent(wpm) {
   return ((clamped - WPM_FLOOR) / (WPM_CEIL - WPM_FLOOR)) * 100;
 }
 
-export default function Results({ result, onRestart, onStats }) {
+export default function Results({
+  result,
+  audioUrl,
+  transcript,
+  previous,
+  onRestart,
+  onStats,
+}) {
   if (result._failed) {
     return (
       <section className="card">
@@ -45,6 +80,7 @@ export default function Results({ result, onRestart, onStats }) {
   const verdict = pacingVerdict(wpm);
   const fillerEntries = Object.entries(fillerWords).sort((a, b) => b[1] - a[1]);
   const fillerTotal = fillerEntries.reduce((sum, [, n]) => sum + n, 0);
+  const focus = focusSummary(result, previous);
 
   return (
     <section className="card results">
@@ -53,16 +89,52 @@ export default function Results({ result, onRestart, onStats }) {
         <p className="muted">(mock data — set GEMINI_API_KEY for real grading)</p>
       )}
 
+      {focus && (
+        <div className="focus-callout">
+          <span className="focus-label">🎯 Focus: {focus.label}</span>
+          <span className="focus-value">
+            {focus.current}
+            {focus.trend && (
+              <span
+                className={`focus-trend ${
+                  focus.trend.improved === true
+                    ? "up"
+                    : focus.trend.improved === false
+                    ? "down"
+                    : ""
+                }`}
+              >
+                {" "}
+                {focus.trend.text}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+
+      {previous && <p className="vs-last">Compared to your last session:</p>}
+
       <div className="scores">
         {SCORE_KEYS.map((key) => {
           const value = scores[key] ?? 0;
+          const prev = previous?.scores?.[key];
+          const delta =
+            prev != null && scores[key] != null ? scores[key] - prev : null;
           return (
             <div className="score-row" key={key}>
               <span className="score-label">{key}</span>
               <div className="score-track">
                 <div className="score-fill" style={{ width: `${value * 10}%` }} />
               </div>
-              <span className="score-num">{scores[key] ?? "–"}/10</span>
+              <span className="score-num">
+                {scores[key] ?? "–"}/10
+                {delta != null && delta !== 0 && (
+                  <span className={`delta ${delta > 0 ? "up" : "down"}`}>
+                    {delta > 0 ? "▲" : "▼"}
+                    {Math.abs(delta)}
+                  </span>
+                )}
+              </span>
             </div>
           );
         })}
@@ -140,6 +212,18 @@ export default function Results({ result, onRestart, onStats }) {
           <p>{coaching}</p>
         </div>
       )}
+
+      {audioUrl && (
+        <div className="replay">
+          <h3>Hear yourself back</h3>
+          <audio controls src={audioUrl} />
+        </div>
+      )}
+
+      <details className="transcript-block">
+        <summary>Transcript {transcript ? "" : "(unavailable)"}</summary>
+        <Transcript text={transcript} />
+      </details>
 
       <div className="actions result-actions">
         <button onClick={onRestart}>Try another</button>

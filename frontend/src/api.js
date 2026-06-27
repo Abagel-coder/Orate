@@ -1,7 +1,10 @@
-// Thin client for the Flask backend. Vite proxies /api -> :5001 in dev.
+// Thin client for the Flask backend. In dev, Vite proxies /api -> :5001 and
+// API_BASE is empty; in prod set VITE_API_BASE to the backend's URL.
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 
-export async function fetchTopic() {
-  const res = await fetch("/api/topic");
+export async function fetchTopic(query) {
+  const qs = query ? `?q=${encodeURIComponent(query)}` : "";
+  const res = await fetch(`${API_BASE}/api/topic${qs}`);
   if (!res.ok) throw new Error("failed to fetch topic");
   return res.json();
 }
@@ -13,7 +16,7 @@ export async function gradeSpeech({ audioBlob, topic, transcript, difficulty }) 
   form.append("transcript", transcript);
   form.append("difficulty", difficulty || "");
 
-  const res = await fetch("/api/grade", { method: "POST", body: form });
+  const res = await fetch(`${API_BASE}/api/grade`, { method: "POST", body: form });
   if (!res.ok) throw new Error("failed to grade speech");
   return res.json();
 }
