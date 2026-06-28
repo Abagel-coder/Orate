@@ -8,7 +8,6 @@ import Topic from "./Topic";
 import Recorder from "./Recorder";
 import Results from "./Results";
 
-// Screen flow: start -> topic -> record -> results (with about/stats side views)
 export default function App() {
   const [stage, setStage] = useState("start");
   const [difficulty, setDifficulty] = useState("medium");
@@ -20,7 +19,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // `query` is an optional user-typed topic; empty means random.
   async function startSession(query) {
     setLoading(true);
     setError(null);
@@ -38,9 +36,6 @@ export default function App() {
     }
   }
 
-  // Gemini owns the qualitative scores; we attach the client-side WPM and
-  // filler counts so the model never has to (unreliably) count them, then
-  // persist the session for the stats dashboard.
   async function finishRecording({ audioBlob, transcript: spoken, metrics }) {
     setLoading(true);
     setError(null);
@@ -51,13 +46,13 @@ export default function App() {
         transcript: spoken,
         difficulty,
       });
+      // Gemini owns the qualitative scores; WPM and fillers come from the client.
       const merged = {
         ...graded,
         wpm: metrics.wpm,
         fillerWords: metrics.fillerWords,
       };
 
-      // Grab the prior attempt for the comparison before saving this one.
       const history = loadAttempts();
       setPrevious(history.length ? history[history.length - 1] : null);
 
@@ -96,7 +91,6 @@ export default function App() {
     setStage("start");
   }
 
-  // The landing page is its own full-screen view.
   if (stage === "start") {
     return (
       <Landing

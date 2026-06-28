@@ -7,7 +7,7 @@ from google.genai import types
 
 log = logging.getLogger(__name__)
 
-# Difficulty scales how strictly Gemini grades, rather than which topic is shown.
+# Difficulty scales how strictly Gemini grades, not which topic is shown.
 DIFFICULTY_GUIDANCE = {
     "easy": "This speaker is a beginner — grade gently and lead with encouragement.",
     "medium": "Grade at a normal, balanced standard for a casual speaker.",
@@ -15,8 +15,7 @@ DIFFICULTY_GUIDANCE = {
 }
 DEFAULT_GUIDANCE = DIFFICULTY_GUIDANCE["medium"]
 
-# WPM and filler counts come from the client (Web Speech) — Gemini only owns the
-# qualitative read, so we don't ask it to count words here.
+# WPM/fillers come from the client, so the prompt asks only for qualitative scores.
 GRADING_PROMPT = """You are a speech coach. The speaker was asked to talk about
 the topic "{topic}" for 1-2 minutes. Listen to the audio and grade them.
 
@@ -55,12 +54,11 @@ def grade_speech(audio_bytes, mimetype, topic, transcript, difficulty=""):
             ],
             config={"response_mime_type": "application/json"},
         )
-        result = json.loads(resp.text)
-        result["_mimetype"] = mimetype  # spike: confirm round-trip format
-        return result
-    except Exception as exc:  # spike: we want the failure mode, not a 500
+        return json.loads(resp.text)
+    except Exception as exc:
+        # Return the failure to the client rather than raising a 500.
         log.exception("Gemini grading failed")
-        return {"error": str(exc), "_mimetype": mimetype, "_failed": True}
+        return {"error": str(exc), "_failed": True}
 
 
 def _mock_result(topic):

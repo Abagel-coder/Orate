@@ -1,5 +1,3 @@
-// A coach's report card: qualitative scores from Gemini plus the client-side
-// pacing and filler metrics, rendered as bars/meters rather than raw numbers.
 import { useState } from "react";
 import Transcript from "./Transcript";
 import { loadGoal } from "./storage";
@@ -8,8 +6,6 @@ import { shareCard } from "./shareCard";
 
 const SCORE_KEYS = ["clarity", "pacing", "structure", "confidence"];
 
-// Builds the focus callout content for the user's chosen goal, comparing this
-// session's tracked metric to the previous attempt.
 function focusSummary(result, previous) {
   const goalId = loadGoal();
   const goal = GOALS[goalId];
@@ -33,7 +29,6 @@ function focusSummary(result, previous) {
   return { label: goal.label, current: `${current}${goal.unit}`, trend };
 }
 
-// Comfortable spoken-presentation range; used to judge the user's pace.
 const IDEAL_MIN = 120;
 const IDEAL_MAX = 150;
 const WPM_FLOOR = 60;
@@ -46,7 +41,6 @@ function pacingVerdict(wpm) {
   return { label: "Great pace", tone: "good" };
 }
 
-// Position (0–100%) of a WPM value along the meter track.
 function wpmToPercent(wpm) {
   const clamped = Math.max(WPM_FLOOR, Math.min(WPM_CEIL, wpm));
   return ((clamped - WPM_FLOOR) / (WPM_CEIL - WPM_FLOOR)) * 100;

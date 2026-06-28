@@ -1,7 +1,5 @@
 import { useState } from "react";
 
-// Full-screen entry page: the floating Orate wordmark, a difficulty picker, an
-// optional topic input, and the call to action that kicks off a session.
 const LEVELS = [
   { id: "easy", label: "Easy" },
   { id: "medium", label: "Medium" },

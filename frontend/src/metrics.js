@@ -1,7 +1,3 @@
-// Client-side speech metrics. We own WPM + filler counts here; Gemini only
-// produces the qualitative scores, so these never round-trip through the model.
-
-// Single words and short phrases people lean on when they stall.
 export const FILLERS = [
   "um",
   "uh",
@@ -27,19 +23,16 @@ function countWords(text) {
   return trimmed.split(/\s+/).length;
 }
 
-// Count filler occurrences. Multi-word phrases are matched first so "you know"
-// isn't also tallied as a bare "so"-style single word.
 function countFillers(text) {
   const counts = {};
   let haystack = ` ${text.toLowerCase()} `;
-  // Longer phrases first to avoid double-counting their component words.
+  // Longer phrases first, blanking matches, so "you know" isn't re-counted as a bare word.
   const ordered = [...FILLERS].sort((a, b) => b.length - a.length);
   for (const filler of ordered) {
     const re = new RegExp(`\\b${filler.replace(/ /g, "\\s+")}\\b`, "g");
     const matches = haystack.match(re);
     if (matches && matches.length) {
       counts[filler] = matches.length;
-      // Blank out matches so shorter fillers don't re-count the same words.
       haystack = haystack.replace(re, " ".repeat(filler.length));
     }
   }

@@ -3,7 +3,7 @@ import { useRecorder } from "./useRecorder";
 import { useTranscript, speechSupported } from "./useTranscript";
 import { computeMetrics } from "./metrics";
 
-const MIN_SECONDS = 30; // below this we nudge but still allow stopping
+const MIN_SECONDS = 30;
 const MAX_SECONDS = 120; // hard cap — auto-stop at 2 minutes
 
 function formatTime(s) {
@@ -12,8 +12,6 @@ function formatTime(s) {
   return `${m}:${sec}`;
 }
 
-// Records the user speaking about `topic`, shows a live transcript + timer,
-// and hands the blob, transcript, and client metrics back via onComplete.
 export default function Recorder({ topic, onComplete, busy }) {
   const { recording, elapsed, level, start: startRec, stop: stopRec } =
     useRecorder();
@@ -42,23 +40,19 @@ export default function Recorder({ topic, onComplete, busy }) {
     onComplete({ audioBlob: blob, transcript, metrics });
   }
 
-  // Hard stop at the cap so recordings never run past 2 minutes.
   useEffect(() => {
     if (recording && elapsed >= MAX_SECONDS) finish();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, elapsed]);
 
   const liveTranscript = (finalText + interim).trim();
-
-  // Rough running pace; only meaningful after a few seconds of speech.
   const liveWords = liveTranscript ? liveTranscript.split(/\s+/).length : 0;
   const liveWpm =
     elapsed >= 4 && liveWords > 0
       ? Math.round(liveWords / (elapsed / 60))
       : null;
 
-  // Once stopped, grading runs while stage is still "record" — show a dedicated
-  // analyzing state so the start button can't be re-triggered mid-grade.
+  // Grading runs while still on the record stage; block re-triggering the mic.
   if (busy) {
     return (
       <section className="card center">

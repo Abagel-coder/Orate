@@ -2,18 +2,14 @@ import time
 
 import requests
 
-# MediaWiki Action API: one request returns a batch of random articles with
-# their intro extracts, so we filter locally instead of making many calls (the
-# REST random/summary endpoint rate-limited quickly under bursts).
+# Action API returns a batch of random articles with extracts in one request,
+# avoiding the REST random/summary endpoint that rate-limited under bursts.
 API_URL = "https://en.wikipedia.org/w/api.php"
 PAGE_SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/{title}"
 HEADERS = {"User-Agent": "Orate/0.1 (speech-practice portfolio project)"}
 
-# Skip pages too thin or too meta to speak about.
 MIN_EXTRACT_CHARS = 350
 SKIP_TYPES = {"disambiguation"}
-
-# How many random candidates to pull per request, and how many requests to try.
 RANDOM_BATCH = 10
 RETRY_DELAY_S = 0.25
 
@@ -51,11 +47,9 @@ def _fetch_random_pages(limit):
 
 
 def get_random_briefing(max_tries=3):
-    """Fetch a random Wikipedia article suitable as a speaking prompt.
+    """Random Wikipedia article (title, summary, url) long enough to speak about.
 
-    Returns a dict: title, summary, url. Each try pulls a batch and keeps the
-    first article that's long enough and not a disambiguation page. Transient
-    errors are tolerated; raises TopicUnavailable only if nothing usable came back.
+    Raises TopicUnavailable if nothing usable came back across all tries.
     """
     for attempt in range(max_tries):
         if attempt:
@@ -63,7 +57,7 @@ def get_random_briefing(max_tries=3):
         try:
             pages = _fetch_random_pages(RANDOM_BATCH)
         except (requests.RequestException, ValueError):
-            continue  # transient (429/5xx/timeout/bad JSON) — just retry
+            continue
 
         for page in pages.values():
             if "disambiguation" in page.get("pageprops", {}):
@@ -81,11 +75,7 @@ def get_random_briefing(max_tries=3):
 
 
 def get_briefing_for(title):
-    """Fetch a specific Wikipedia article by title as a speaking prompt.
-
-    Wikipedia resolves near-matches/redirects, so loose user input usually works.
-    Raises TopicUnavailable if the page is missing or has no usable summary.
-    """
+    """Fetch a specific Wikipedia article by title (resolves redirects/near-matches)."""
     url = PAGE_SUMMARY_URL.format(title=requests.utils.quote(title.strip(), safe=""))
     try:
         resp = requests.get(url, headers=HEADERS, timeout=10)

@@ -25,7 +25,6 @@ function avg(scores) {
   return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
-// Word-wrap `text` to a max width, returning the lines.
 function wrapLines(ctx, text, maxWidth) {
   const words = text.split(/\s+/);
   const lines = [];
@@ -49,7 +48,6 @@ export function buildShareCanvas({ topic = "", scores = {}, wpm = 0, fillerTotal
   canvas.height = H;
   const ctx = canvas.getContext("2d");
 
-  // Background gradient (warm brown, matching the app theme).
   const bg = ctx.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0, "#9c7440");
   bg.addColorStop(1, "#3f2814");
@@ -59,7 +57,6 @@ export function buildShareCanvas({ topic = "", scores = {}, wpm = 0, fillerTotal
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
 
-  // Wordmark + kicker.
   ctx.fillStyle = CREAM;
   ctx.font = "800 76px system-ui, sans-serif";
   ctx.fillText("Orate", PAD, 150);
@@ -67,7 +64,6 @@ export function buildShareCanvas({ topic = "", scores = {}, wpm = 0, fillerTotal
   ctx.font = "500 30px system-ui, sans-serif";
   ctx.fillText("SPEAKING SESSION", PAD, 196);
 
-  // Topic (wrapped, up to 2 lines).
   ctx.fillStyle = CREAM;
   ctx.font = "600 46px system-ui, sans-serif";
   const topicLines = wrapLines(ctx, topic || "Untitled topic", W - PAD * 2).slice(0, 2);
@@ -77,7 +73,6 @@ export function buildShareCanvas({ topic = "", scores = {}, wpm = 0, fillerTotal
     ty += 58;
   }
 
-  // Big overall average.
   const overall = avg(scores);
   ctx.fillStyle = CREAM;
   ctx.font = "800 150px system-ui, sans-serif";
@@ -86,7 +81,6 @@ export function buildShareCanvas({ topic = "", scores = {}, wpm = 0, fillerTotal
   ctx.fillStyle = "rgba(248,241,228,0.8)";
   ctx.fillText("/ 10 overall", PAD + 250, 510);
 
-  // Score bars.
   let by = 590;
   const labelW = 300;
   const barX = PAD + labelW;
@@ -112,7 +106,6 @@ export function buildShareCanvas({ topic = "", scores = {}, wpm = 0, fillerTotal
     by += 80;
   }
 
-  // Pacing + fillers chips.
   const chipY = by + 30;
   ctx.font = "600 36px system-ui, sans-serif";
   ctx.fillStyle = CREAM;
@@ -123,7 +116,6 @@ export function buildShareCanvas({ topic = "", scores = {}, wpm = 0, fillerTotal
     chipY + 38
   );
 
-  // Footer tagline.
   ctx.fillStyle = "rgba(248,241,228,0.7)";
   ctx.font = "500 32px system-ui, sans-serif";
   ctx.fillText("Practice speaking with Orate", PAD, H - 70);
@@ -147,7 +139,7 @@ export async function shareCard(data) {
       await navigator.share({ files: [file], title: "My Orate session" });
       return "shared";
     } catch {
-      return "cancelled"; // user dismissed the share sheet
+      return "cancelled";
     }
   }
 

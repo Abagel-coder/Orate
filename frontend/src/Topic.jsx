@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 
-// Suggested time to skim the article before speaking, scaled by difficulty:
-// easier levels get more prep, harder levels less. A gentle nudge — the user can
-// start whenever they're ready.
+// Suggested prep seconds by difficulty (just a nudge; user starts when ready).
 const PREP_SECONDS = { easy: 60, medium: 45, hard: 25 };
 
 export default function Topic({ topic, difficulty, onReady }) {

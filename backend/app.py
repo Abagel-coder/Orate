@@ -6,15 +6,16 @@ from flask_cors import CORS
 from wiki import get_random_briefing, get_briefing_for, TopicUnavailable
 from grade import grade_speech
 
-# Cap upload size so a bad/huge file can't exhaust memory. 1-2 min of audio is a
-# couple of MB; 15 MB is generous headroom.
-MAX_AUDIO_BYTES = 15 * 1024 * 1024
+MAX_AUDIO_BYTES = 15 * 1024 * 1024  # generous headroom over a 1-2 min clip
 
-app = Flask(__name__)
+# In the single-service deploy the built SPA is served from here; in dev Vite
+# serves the frontend and this folder may not exist.
+STATIC_DIR = os.environ.get("STATIC_DIR", "static")
+
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 app.config["MAX_CONTENT_LENGTH"] = MAX_AUDIO_BYTES
 
-# Lock CORS to the deployed frontend origin(s) in prod; defaults to open for
-# local dev. Set FRONTEND_ORIGIN to a comma-separated list of allowed origins.
+# Comma-separated allowed origins; defaults to open for local dev.
 _origins = os.environ.get("FRONTEND_ORIGIN", "*").split(",")
 CORS(app, origins=[o.strip() for o in _origins if o.strip()])
 
@@ -32,10 +33,7 @@ def topic():
 
 @app.post("/api/grade")
 def grade():
-    """Grade a recorded speech clip against its topic.
-
-    Expects multipart/form-data: `audio` (the recording) and `topic` (text).
-    """
+    """Grade a recorded clip. multipart/form-data: audio, topic, transcript, difficulty."""
     audio = request.files.get("audio")
     topic_title = request.form.get("topic", "")
     transcript = request.form.get("transcript", "")
@@ -50,6 +48,11 @@ def grade():
 
     result = grade_speech(audio_bytes, audio.mimetype, topic_title, transcript, difficulty)
     return jsonify(result)
+
+
+@app.get("/")
+def index():
+    return app.send_static_file("index.html")
 
 
 @app.errorhandler(413)

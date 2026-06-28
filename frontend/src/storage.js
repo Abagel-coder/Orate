@@ -1,6 +1,4 @@
-// Per-browser attempt history. Versioned from day one so the shape can migrate
-// later without losing data. No accounts, no server — everything lives here.
-
+// Per-browser attempt history + focus goal, versioned for future migration.
 const KEY = "orate.history";
 const GOAL_KEY = "orate.goal";
 const SCHEMA_VERSION = 1;
@@ -15,7 +13,6 @@ function read() {
     if (!raw) return empty();
     const data = JSON.parse(raw);
     if (!data || !Array.isArray(data.attempts)) return empty();
-    // Future migrations branch on data.schemaVersion here.
     return { schemaVersion: SCHEMA_VERSION, attempts: data.attempts };
   } catch {
     return empty();
@@ -30,7 +27,6 @@ export function loadAttempts() {
   return read().attempts;
 }
 
-// Persist one graded session. Caller passes the already-merged fields.
 export function saveAttempt({ topic, difficulty, scores, wpm, fillerTotal }) {
   const data = read();
   const entry = {
@@ -51,7 +47,6 @@ export function clearAttempts() {
   write(empty());
 }
 
-// The user's current focus area (a GOALS id), or "" if none set.
 export function loadGoal() {
   try {
     return localStorage.getItem(GOAL_KEY) || "";
@@ -69,7 +64,6 @@ export function exportJSON() {
   return JSON.stringify(read(), null, 2);
 }
 
-// Replace history from an exported file. Throws on a malformed payload.
 export function importJSON(json) {
   const data = JSON.parse(json);
   if (!data || !Array.isArray(data.attempts)) {

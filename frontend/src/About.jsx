@@ -1,4 +1,3 @@
-// Static About view — what Orate is, how it works, and the privacy stance.
 export default function About({ onBack }) {
   return (
     <main className="app">

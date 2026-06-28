@@ -171,18 +171,32 @@ npm run dev
 Set `GEMINI_API_KEY` in `backend/.env` to enable real grading; without it,
 `/api/grade` returns mock feedback so the rest of the app stays demoable.
 
-## Deploy
+## Deploy (single service on Render)
 
-Frontend and backend deploy separately.
+The included multi-stage `Dockerfile` builds the SPA with Node, then serves both the
+static SPA and the API from one Flask/gunicorn process — one URL, no CORS, no
+`VITE_API_BASE` needed.
 
-- **Frontend** — `npm run build` produces static files in `frontend/dist/`; host on
-  any static host (Netlify, Vercel, GitHub Pages). Set `VITE_API_BASE` at build time
-  to the backend's public URL (the dev `/api` proxy doesn't exist in production).
-- **Backend** — run with gunicorn (`web: gunicorn app:app`, see `Procfile`) on a host
-  like Render/Railway/Fly. Set env vars:
-  - `GEMINI_API_KEY` — enables real grading (omit for a zero-cost mock demo).
-  - `FRONTEND_ORIGIN` — comma-separated allowed origin(s) for CORS (e.g. your frontend
-    URL). Defaults to `*` for local dev.
+1. Push to GitHub (already done for this repo).
+2. Render → **New → Web Service** → connect the repo → Runtime **Docker** (the
+   `Dockerfile` is auto-detected) → pick the Free instance.
+3. Add env var **`GEMINI_API_KEY`** (a freshly rotated key) to enable real grading.
+   Omit it for a zero-cost mock demo. `FRONTEND_ORIGIN` is unnecessary (same origin).
+4. Health check path `/`; auto-deploy on push to `main`.
 
-> Never commit `backend/.env`. It's gitignored; configure secrets via the host's
-> environment instead.
+> Free instances idle out, so the first request after inactivity cold-starts (~30–60s).
+
+Run the container locally to test the production build:
+
+```bash
+docker build -t orate .
+docker run -p 5001:5001 -e PORT=5001 -e GEMINI_API_KEY=<key> orate
+# open http://localhost:5001
+```
+
+Or without Docker: `cd frontend && npm run build`, then from `backend/`
+`STATIC_DIR=../frontend/dist GEMINI_API_KEY=<key> ./.venv/bin/gunicorn app:app -b 0.0.0.0:5001`.
+
+> Never commit `backend/.env` — it's gitignored. Configure secrets via the host's
+> environment instead. (The Gemini key that was previously committed lives in git
+> history; rotate it before the repo is shared or made public.)

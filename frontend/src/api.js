@@ -1,5 +1,4 @@
-// Thin client for the Flask backend. In dev, Vite proxies /api -> :5001 and
-// API_BASE is empty; in prod set VITE_API_BASE to the backend's URL.
+// Empty in dev (Vite proxies /api); set VITE_API_BASE in prod if split-hosted.
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
 export async function fetchTopic(query) {

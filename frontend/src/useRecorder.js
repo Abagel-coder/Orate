@@ -1,8 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
-// Captures microphone audio into a single blob, tracks elapsed seconds, and
-// exposes a live input level (0–1) so the UI can show the mic is working.
-// Returns the recorded blob from stop() so callers can await it.
+// Records mic audio to a blob (returned from stop()), tracks elapsed seconds,
+// and exposes a live 0–1 input level.
 export function useRecorder() {
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -15,7 +14,6 @@ export function useRecorder() {
   const audioCtxRef = useRef(null);
   const rafRef = useRef(null);
 
-  // Drive `level` from an analyser reading the mic stream's RMS amplitude.
   const startMeter = useCallback((stream) => {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
@@ -35,8 +33,8 @@ export function useRecorder() {
         sum += v * v;
       }
       const rms = Math.sqrt(sum / data.length);
-      // Scale up — speech RMS is small — and clamp to 0–1.
-      setLevel(Math.min(1, rms * 2.5));
+      setLevel(Math.min(1, rms * 2.5)); // speech RMS is small; scale + clamp
+
       rafRef.current = requestAnimationFrame(tick);
     };
     tick();

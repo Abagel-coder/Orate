@@ -1,7 +1,6 @@
 import { Component } from "react";
 
-// Catches render-time crashes anywhere below it and shows a fallback instead of
-// a blank white page (the failure mode we hit with the bad Stats import).
+// Shows a fallback instead of a blank page when a child render crashes.
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props);

@@ -1,5 +1,4 @@
-// Focus areas a user can commit to. Each maps to a tracked metric so Results
-// and Stats can surface progress against the chosen goal.
+// Focus areas, each mapped to a tracked metric.
 export const GOALS = {
   filler: {
     label: "Cut filler words",
@@ -33,8 +32,7 @@ export const GOALS = {
   },
 };
 
-// Pull the tracked metric's value out of either a live result or a stored
-// attempt (fillerTotal is summed from fillerWords on a fresh result).
+// Reads the tracked metric from a live result or a stored attempt.
 export function goalValue(goalId, source) {
   if (!source) return null;
   const metric = GOALS[goalId]?.metric;

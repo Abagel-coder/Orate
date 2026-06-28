@@ -10,7 +10,6 @@ import {
 import { computeStats, avgScore, practicedToday } from "./statsUtil";
 import { GOALS } from "./goals";
 
-// Which metric the trend chart plots; scores are out of 10, WPM out of ~200.
 const METRICS = [
   { key: "avg", label: "Average", max: 10 },
   { key: "clarity", label: "Clarity", max: 10 },
@@ -20,7 +19,6 @@ const METRICS = [
   { key: "wpm", label: "WPM", max: 200 },
 ];
 
-// Inline SVG trend line of the chosen metric over time.
 function Sparkline({ series, metricKey, max }) {
   if (series.length < 2) {
     return <p className="muted">Record a few more sessions to see your trend.</p>;
@@ -68,7 +66,7 @@ export default function Stats({ onBack }) {
   const fmt = (v) => (metricKey === "wpm" ? Math.round(v) : v.toFixed(1));
 
   function chooseGoal(id) {
-    const next = goal === id ? "" : id; // click again to clear
+    const next = goal === id ? "" : id;
     setGoal(next);
     saveGoal(next);
   }
@@ -138,7 +136,6 @@ export default function Stats({ onBack }) {
           </p>
         )}
 
-        {/* Focus picker is useful even before the first session. */}
         <h3>Your focus</h3>
         <div className="goal-picker">
           {Object.entries(GOALS).map(([id, g]) => (
