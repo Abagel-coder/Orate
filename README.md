@@ -1,4 +1,4 @@
-# Speech Trainer
+# Orate - A Speech Trainer
 
 A web app that helps people practice speaking — enunciation, pacing, structure.
 It pulls a random topic from Wikipedia, gives you time to read up, records you
